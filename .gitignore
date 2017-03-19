@@ -1,0 +1,10 @@
+include
+libgraphics
+learn
+*.json
+*.dev
+*.o
+*.rar
+*.layout
+*.win
+*.exe
