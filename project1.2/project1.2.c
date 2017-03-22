@@ -233,24 +233,27 @@ void ReDraw_text(int is_LEFT)
         Erase_cursor();
     cancelTimer(cursor_500);
     //stop the cursor for a while
-    while(text_index < strlen(text) +count)
+    MovePen(original_x + char_width + TextStringWidth("|"), original_y);
+    while(text_index < strlen(text))
     {
         Erase_one_char();
-        Draw_one_char(text[text_index]);
-        //Must erase firstly or what you are drawing may cover other characters
         text_index++;
-        if (exit_loop)
-            break;
     }
+    //erase last string
     MovePen(original_x, original_y);
     //move cursor to original palce
     text_index = original_index;
     line = original_line;
+    while (text_index < strlen(text))
+    {
+        Draw_one_char(text[text_index]);
+        text_index++;
+    }
+    //redraw last string
+    text_index = original_index;
+    MovePen(original_x, original_y);
     startTimer(cursor_500, ms500);
     //restart cursor
-    if (exit_loop)
-        exit_loop = !exit_loop;
-
 }
 
 void Erase_one_char()
@@ -260,21 +263,6 @@ void Erase_one_char()
     cx = GetCurrentX();
     cy = GetCurrentY();
     SetEraseMode(TRUE);
-    if (cx + char_width + TextStringWidth("|") < GetWindowWidth() 
-        && cx + TextStringWidth("|") + TextStringWidth(temp_ch) < GetWindowWidth())
-        MovePen(cx + char_width + TextStringWidth("|"), cy);
-    else if(cx + char_width + TextStringWidth("|") < GetWindowWidth())
-    {
-        exit_loop = TRUE;
-        count++;
-    }
-    else
-    {
-        MovePen(char_width + TextStringWidth("|"), cy - line_height);
-        cx = 0;
-        cy = cy - line_height;
-    }
     Draw_one_char(text[text_index]);
-    MovePen(cx, cy);
     SetEraseMode(FALSE);
 }
