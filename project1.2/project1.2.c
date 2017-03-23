@@ -20,29 +20,31 @@
 #define line_height 0.2
 #define LEFT TRUE
 #define RIGHT FALSE
+#define INSERT TRUE
+#define NOT_INSERT FALSE
 const int ms500 = 500;
 
 bool is_display = FALSE;
 //cursor status
 char text[1000];
 int text_index;
-//text_index also represent cursor location
+//text_index also represents cursor location
 double char_width;
 double last_char_X[10];
 //record every line's last char's x location
 int line = 0;
 //record lines
-bool exit_loop = FALSE;
-int count=0;
 
 void Erase_one_char();
 //Erase a right char
 void cancelTimer(int timeID);
-void ReDraw_text(int is_LEFT);
+void ReDraw_text(int is_insert);
 void cursor_move(int is_LEFT);
 void Draw_one_char(char c);
 void Delete_one_char(int is_LEFT);
 void Erase_cursor();
+void insert_char(char c);
+//insert a char into the text array
 
 void CharEventProcess(char c);
 void keyboardEventProcess(int key,int event);
@@ -72,11 +74,20 @@ void CharEventProcess(char c)
     }
     else if (c == VK_BACK || c == VK_DELETE || c == VK_SPACE)
         return;
-        /*prevent outputing nonsense characters*/
+        // prevent outputing nonsense characters
+        //space is not allowed
     else
-	{ 
-        Draw_one_char(c);
-        text[text_index++] = c;
+	{   
+        if (text_index == strlen(text))
+        {
+            Draw_one_char(c);
+            text[text_index++] = c;
+        }
+        else
+        {
+            insert_char(c);
+            ReDraw_text(INSERT);
+        }
 	}
 }
 void keyboardEventProcess(int key,int event)
@@ -90,14 +101,14 @@ void keyboardEventProcess(int key,int event)
                     if (text_index > 0)
                     {
                         Delete_one_char(LEFT);
-                        ReDraw_text(RIGHT);
+                        ReDraw_text(NOT_INSERT);
                     }
                     break;
                 case VK_DELETE:
                     if (text_index < strlen(text))
                     {
                         Delete_one_char(RIGHT);
-                        ReDraw_text(LEFT);
+                        ReDraw_text(NOT_INSERT);
                     }
                     break;
                 case VK_LEFT:
@@ -221,7 +232,7 @@ void cursor_move(int is_LEFT)
     }
 }
 
-void ReDraw_text(int is_LEFT)
+void ReDraw_text(int is_insert)
 {
     double original_x,original_y;
     int original_index,original_line;
@@ -229,17 +240,21 @@ void ReDraw_text(int is_LEFT)
     original_x = GetCurrentX();
     original_y = GetCurrentY();
     original_line = line;
+    
     if (is_display)
         Erase_cursor();
     cancelTimer(cursor_500);
     //stop the cursor for a while
-    MovePen(original_x + char_width + TextStringWidth("|"), original_y);
+    if (!is_insert)
+        MovePen(original_x + char_width + TextStringWidth("|"), original_y);
+    else
+        text_index++;
     while(text_index < strlen(text))
     {
         Erase_one_char();
         text_index++;
     }
-    //erase last string
+    //erase rest string
     MovePen(original_x, original_y);
     //move cursor to original palce
     text_index = original_index;
@@ -249,8 +264,9 @@ void ReDraw_text(int is_LEFT)
         Draw_one_char(text[text_index]);
         text_index++;
     }
-    //redraw last string
+    //redraw rest string
     text_index = original_index;
+    line = original_line;
     MovePen(original_x, original_y);
     startTimer(cursor_500, ms500);
     //restart cursor
@@ -265,4 +281,16 @@ void Erase_one_char()
     SetEraseMode(TRUE);
     Draw_one_char(text[text_index]);
     SetEraseMode(FALSE);
+}
+void insert_char(char c)
+{
+    int index;
+    index = strlen(text);
+    text[index + 1] = '\0';
+    while(index > text_index)
+    {
+        text[index] = text[index - 1];
+        index--;
+    }
+    text[text_index] = c;
 }
