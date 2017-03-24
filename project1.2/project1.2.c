@@ -22,6 +22,7 @@
 #define RIGHT FALSE
 #define INSERT TRUE
 #define NOT_INSERT FALSE
+#define Start_X 0
 const int ms500 = 500;
 
 bool is_display = FALSE;
@@ -30,11 +31,15 @@ char text[1000];
 int text_index;
 //text_index also represents cursor location
 double char_width;
+//record the width of char which is deleted
 double last_char_X[10];
 //record every line's last char's x location
-int line = 0;
-//record lines
-
+int current_line = 0;
+//record the current_line
+unsigned char draw_char[3] = {'\0','\0','\0'};
+//store a character which is to be drown
+unsigned char temp_char[3] = {'\0','\0','\0'};
+//store a character which is temporary used
 void Erase_one_char();
 //Erase a right char
 void cancelTimer(int timeID);
@@ -45,6 +50,8 @@ void Delete_one_char(int is_LEFT);
 void Erase_cursor();
 void insert_char(char c);
 //insert a char into the text array
+void get_near_char(int is_LEFT);
+void clear_temp_char();
 
 void CharEventProcess(char c);
 void keyboardEventProcess(int key,int event);
@@ -57,7 +64,7 @@ void Main()
     InitConsole();
     InitGraphics();
     cy = GetWindowHeight()/2;
-    MovePen(0, cy);
+    MovePen(Start_X, cy);
     registerCharEvent(CharEventProcess);
     registerKeyboardEvent(keyboardEventProcess);
     registerTimerEvent(TimerEventProcess);
@@ -86,7 +93,8 @@ void CharEventProcess(char c)
         else
         {
             insert_char(c);
-            ReDraw_text(INSERT);
+            if (c <= 127)
+                ReDraw_text(INSERT);
         }
 	}
 }
@@ -159,16 +167,26 @@ void Erase_cursor()
 
 void Draw_one_char(char c)
 {
-    char s[2] = {c, '\0'};
+    if (draw_char[0] == '\0')
+        draw_char[0] = c;
+    else
+        draw_char[1] = c;
     if (is_display)
         Erase_cursor();
-    if (GetCurrentX() + TextStringWidth(s) > GetWindowWidth())
+    if (GetCurrentX() + TextStringWidth(draw_char) > GetWindowWidth())
     {
-        last_char_X[line++] = GetCurrentX();
-        MovePen(0, GetCurrentY() - line_height);
+        last_char_X[current_line++] = GetCurrentX();
+        MovePen(Start_X, GetCurrentY() - line_height);
     }
-    MovePen(GetCurrentX() + TextStringWidth("|"), GetCurrentY());
-    DrawTextString(s);
+    if (draw_char[0] <= 127 || draw_char[1] != '\0')
+    {
+        printf("%d\n",draw_char[0]);
+        MovePen(GetCurrentX() + TextStringWidth("|"), GetCurrentY());
+        DrawTextString(draw_char);
+        draw_char[0] ='\0';
+        draw_char[1] = '\0';
+    }
+    
 }
 
 void Delete_one_char(int is_LEFT)
@@ -178,27 +196,39 @@ void Delete_one_char(int is_LEFT)
     SetEraseMode(TRUE);
     if (is_LEFT)
     {
-        char ch_LEFT[2] = {text[text_index - 1], '\0'};
-        char_width = TextStringWidth(ch_LEFT);
+        get_near_char(is_LEFT);
+        if (strlen(temp_char) == 2)
+        {
+            text[--text_index] = '\0';
+            text[--text_index] = '\0';
+        }
+        else
+            text[--text_index] = '\0';
+        char_width = TextStringWidth(temp_char);
         MovePen(GetCurrentX()-char_width,GetCurrentY());
-        text[--text_index] = '\0';
         //cursor move
         strcat(text, &text[text_index+1]);
-        DrawTextString(ch_LEFT);
+        DrawTextString(temp_char);
         MovePen(GetCurrentX()-char_width-TextStringWidth("|"),GetCurrentY());
     }
     else
     {
-        char ch_RIGHT[2] = {text[text_index], '\0'};
-        char_width = TextStringWidth(ch_RIGHT);
-        MovePen(GetCurrentX()+TextStringWidth("|"), GetCurrentY());
-        text[text_index] = '\0';
+        get_near_char(is_LEFT);
+        if (strlen(temp_char) == 2)
+        {
+            text[text_index] = '\0';
+            text[text_index + 1] = '\0'; 
+        }
+        else
+            text[text_index] = '\0';
         //cursor not move
+        char_width = TextStringWidth(temp_char);
+        MovePen(GetCurrentX()+TextStringWidth("|"), GetCurrentY());
         strcat(text, &text[text_index+1]);
-        DrawTextString(ch_RIGHT);
+        DrawTextString(temp_char);
         MovePen(GetCurrentX()-char_width-TextStringWidth("|"),GetCurrentY());
     }
-    
+    clear_temp_char();
     SetEraseMode(FALSE);
 }
 void cursor_move(int is_LEFT)
@@ -207,39 +237,47 @@ void cursor_move(int is_LEFT)
         Erase_cursor();
     if (is_LEFT)
     {
-        text_index--;
-        char temp_ch[2] = {text[text_index], '\0'};
-        if (GetCurrentX() -TextStringWidth(temp_ch) > 0)
-            MovePen(GetCurrentX()-TextStringWidth(temp_ch)-TextStringWidth("|"), GetCurrentY());
+        get_near_char(is_LEFT);
+        if (strlen(temp_char) == 2)
+            text_index -= 2;
+        else
+            text_index--;
+        if (GetCurrentX() -TextStringWidth(temp_char) > 0)
+            MovePen(GetCurrentX()-TextStringWidth(temp_char)-TextStringWidth("|"), GetCurrentY());
         else
         {
-            MovePen(last_char_X[--line], GetCurrentY() + line_height);
-            text_index++;
+            MovePen(last_char_X[--current_line], GetCurrentY() + line_height);
+            text_index = (temp_char[1] == '\0')?(text_index + 1):(text_index + 2);
+            //reset text_index
         }
 	}
     else
 	{
-        text_index++;
-        char temp_ch[2] = {text[text_index-1], '\0'};
+        get_near_char(is_LEFT);
+        if (strlen(temp_char) == 2)
+            text_index += 2;
+        else
+            text_index++;
         if (GetCurrentX() + TextStringWidth(temp_ch) < GetWindowWidth())
             MovePen(GetCurrentX()+TextStringWidth(temp_ch)+TextStringWidth("|"), GetCurrentY());
         else
         {
-            MovePen(0, GetCurrentY() - line_height);
-            line++;
-            text_index--;
+            MovePen(Start_X, GetCurrentY() - line_height);
+            current_line++;
+            text_index = (temp_char[1] == '\0')?(text_index - 1):(text_index - 2);
         }
     }
+    clear_temp_char();
 }
 
 void ReDraw_text(int is_insert)
 {
     double original_x,original_y;
-    int original_index,original_line;
+    int original_index,original_current_line;
     original_index = text_index;
     original_x = GetCurrentX();
     original_y = GetCurrentY();
-    original_line = line;
+    original_current_line = current_line;
     
     if (is_display)
         Erase_cursor();
@@ -248,26 +286,49 @@ void ReDraw_text(int is_insert)
     if (!is_insert)
         MovePen(original_x + char_width + TextStringWidth("|"), original_y);
     else
-        text_index++;
+    {
+        get_near_char(RIGHT);
+        text_index += strlen(temp_char);
+        clear_temp_char();
+    }
+
     while(text_index < strlen(text))
     {
         Erase_one_char();
-        text_index++;
+        get_near_char(RIGHT);
+        text_index += strlen(temp_char);
+        clear_temp_char();
     }
     //erase rest string
+
     MovePen(original_x, original_y);
     //move cursor to original palce
     text_index = original_index;
-    line = original_line;
+    current_line = original_current_line;
+
     while (text_index < strlen(text))
     {
         Draw_one_char(text[text_index]);
-        text_index++;
+        get_near_char(RIGHT);
+        text_index += strlen(temp_char);
+        clear_temp_char();
     }
     //redraw rest string
-    text_index = original_index;
-    line = original_line;
-    MovePen(original_x, original_y);
+
+    if (!is_insert)
+    {
+        text_index = original_index;
+        MovePen(original_x, original_y);
+    }
+    else
+    {
+        text_index = original_index;
+        get_near_char(RIGHT);
+        MovePen(original_x + TextStringWidth("|") + TextStringWidth(temp_char), original_y);
+        text_index += strlen(temp_char)
+    }
+    current_line = original_current_line;
+    clear_temp_char()
     startTimer(cursor_500, ms500);
     //restart cursor
 }
@@ -286,11 +347,42 @@ void insert_char(char c)
 {
     int index;
     index = strlen(text);
-    text[index + 1] = '\0';
+    if (c > 127)
+        text[index + 2] = '\0';
+    else
+        text[index + 1] = '\0';
     while(index > text_index)
     {
         text[index] = text[index - 1];
         index--;
     }
     text[text_index] = c;
+}
+void get_near_char(int is_LEFT)
+{
+    if (is_LEFT)
+    {
+        if (text[text_index - 2] > 127)
+        {
+            temp_char[0] = text[text_index - 2];
+            temp_char[1] = text[text_index - 1];
+        }
+        else
+            temp_char[0] = text[text_index - 1];
+    }
+    else
+    {
+        if (text[text_index] > 127)
+        {
+            temp_char[0] = text[text_index];
+            temp_char[1] = text[text_index + 1];
+        }
+        else
+            temp_char =text[text_index];
+    }
+}
+void clear_temp_char()
+{
+    temp_char[0] = '\0';
+    temp_char[1] = '\0';
 }
