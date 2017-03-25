@@ -25,9 +25,10 @@
 #define Start_X 0
 const int ms500 = 500;
 
+bool is_Chinese = FALSE;
 bool is_display = FALSE;
 //cursor status
-char text[1000];
+unsigned char text[1000];
 int text_index;
 //text_index also represents cursor location
 double char_width;
@@ -45,10 +46,10 @@ void Erase_one_char();
 void cancelTimer(int timeID);
 void ReDraw_text(int is_insert);
 void cursor_move(int is_LEFT);
-void Draw_one_char(char c);
+void Draw_one_char(unsigned char c);
 void Delete_one_char(int is_LEFT);
 void Erase_cursor();
-void insert_char(char c);
+void insert_char(unsigned char c);
 //insert a char into the text array
 void get_near_char(int is_LEFT);
 void clear_temp_char();
@@ -92,8 +93,21 @@ void CharEventProcess(char c)
         }
         else
         {
-            insert_char(c);
-            if (c <= 127)
+            if (!is_Chinese && c < 0)
+            //the prototype of function is (char c) so when Chinese the c is negative
+            {
+                is_Chinese = TRUE;
+                insert_char(c);
+            }
+            else if (is_Chinese)
+            {
+                is_Chinese = FALSE;
+                insert_char(c);
+                text_index--;
+            }
+            else
+                insert_char(c);
+            if (!is_Chinese)
                 ReDraw_text(INSERT);
         }
 	}
@@ -165,7 +179,7 @@ void Erase_cursor()
     is_display = FALSE;
 }
 
-void Draw_one_char(char c)
+void Draw_one_char(unsigned char c)
 {
     if (draw_char[0] == '\0')
         draw_char[0] = c;
@@ -180,7 +194,6 @@ void Draw_one_char(char c)
     }
     if (draw_char[0] <= 127 || draw_char[1] != '\0')
     {
-        printf("%d\n",draw_char[0]);
         MovePen(GetCurrentX() + TextStringWidth("|"), GetCurrentY());
         DrawTextString(draw_char);
         draw_char[0] ='\0';
@@ -201,13 +214,16 @@ void Delete_one_char(int is_LEFT)
         {
             text[--text_index] = '\0';
             text[--text_index] = '\0';
+            strcat(text, &text[text_index+2]);
         }
         else
+        {
             text[--text_index] = '\0';
+            strcat(text, &text[text_index+1]);
+        }
+        //cursor move
         char_width = TextStringWidth(temp_char);
         MovePen(GetCurrentX()-char_width,GetCurrentY());
-        //cursor move
-        strcat(text, &text[text_index+1]);
         DrawTextString(temp_char);
         MovePen(GetCurrentX()-char_width-TextStringWidth("|"),GetCurrentY());
     }
@@ -217,14 +233,17 @@ void Delete_one_char(int is_LEFT)
         if (strlen(temp_char) == 2)
         {
             text[text_index] = '\0';
-            text[text_index + 1] = '\0'; 
+            text[text_index + 1] = '\0';
+            strcat(text, &text[text_index+2]); 
         }
         else
+        {
             text[text_index] = '\0';
+            strcat(text, &text[text_index+1]);
+        }
         //cursor not move
         char_width = TextStringWidth(temp_char);
         MovePen(GetCurrentX()+TextStringWidth("|"), GetCurrentY());
-        strcat(text, &text[text_index+1]);
         DrawTextString(temp_char);
         MovePen(GetCurrentX()-char_width-TextStringWidth("|"),GetCurrentY());
     }
@@ -258,8 +277,8 @@ void cursor_move(int is_LEFT)
             text_index += 2;
         else
             text_index++;
-        if (GetCurrentX() + TextStringWidth(temp_ch) < GetWindowWidth())
-            MovePen(GetCurrentX()+TextStringWidth(temp_ch)+TextStringWidth("|"), GetCurrentY());
+        if (GetCurrentX() + TextStringWidth(temp_char) < GetWindowWidth())
+            MovePen(GetCurrentX()+TextStringWidth(temp_char)+TextStringWidth("|"), GetCurrentY());
         else
         {
             MovePen(Start_X, GetCurrentY() - line_height);
@@ -295,9 +314,7 @@ void ReDraw_text(int is_insert)
     while(text_index < strlen(text))
     {
         Erase_one_char();
-        get_near_char(RIGHT);
-        text_index += strlen(temp_char);
-        clear_temp_char();
+        text_index++;
     }
     //erase rest string
 
@@ -308,10 +325,9 @@ void ReDraw_text(int is_insert)
 
     while (text_index < strlen(text))
     {
+        
         Draw_one_char(text[text_index]);
-        get_near_char(RIGHT);
-        text_index += strlen(temp_char);
-        clear_temp_char();
+        text_index++;
     }
     //redraw rest string
 
@@ -325,10 +341,10 @@ void ReDraw_text(int is_insert)
         text_index = original_index;
         get_near_char(RIGHT);
         MovePen(original_x + TextStringWidth("|") + TextStringWidth(temp_char), original_y);
-        text_index += strlen(temp_char)
+        text_index += strlen(temp_char);
     }
     current_line = original_current_line;
-    clear_temp_char()
+    clear_temp_char();
     startTimer(cursor_500, ms500);
     //restart cursor
 }
@@ -336,30 +352,28 @@ void ReDraw_text(int is_insert)
 void Erase_one_char()
 {
     double cx,cy;
-    char temp_ch[2] = {text[text_index] , '\0'};
     cx = GetCurrentX();
     cy = GetCurrentY();
     SetEraseMode(TRUE);
     Draw_one_char(text[text_index]);
     SetEraseMode(FALSE);
 }
-void insert_char(char c)
+void insert_char(unsigned char c)
 {
     int index;
     index = strlen(text);
-    if (c > 127)
-        text[index + 2] = '\0';
-    else
-        text[index + 1] = '\0';
+    text[text_index + 1] = '\0'; 
     while(index > text_index)
     {
         text[index] = text[index - 1];
         index--;
     }
     text[text_index] = c;
+    if (is_Chinese)
+        text_index++;  
 }
 void get_near_char(int is_LEFT)
-{
+{  
     if (is_LEFT)
     {
         if (text[text_index - 2] > 127)
@@ -378,7 +392,7 @@ void get_near_char(int is_LEFT)
             temp_char[1] = text[text_index + 1];
         }
         else
-            temp_char =text[text_index];
+            temp_char[0] =text[text_index];
     }
 }
 void clear_temp_char()
