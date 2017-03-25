@@ -29,6 +29,9 @@ bool is_Chinese = FALSE;
 bool is_display = FALSE;
 //cursor status
 unsigned char text[1000];
+int record_Chinese_index[500];
+int Chinese_counter = 0;
+
 int text_index;
 //text_index also represents cursor location
 double char_width;
@@ -53,6 +56,7 @@ void insert_char(unsigned char c);
 //insert a char into the text array
 void get_near_char(int is_LEFT);
 void clear_temp_char();
+void delete_Chinese_index();
 
 void CharEventProcess(char c);
 void keyboardEventProcess(int key,int event);
@@ -102,6 +106,7 @@ void CharEventProcess(char c)
             else if (is_Chinese)
             {
                 is_Chinese = FALSE;
+                record_Chinese_index[Chinese_counter++] = text_index + 1;
                 insert_char(c);
                 text_index--;
             }
@@ -215,6 +220,7 @@ void Delete_one_char(int is_LEFT)
             text[--text_index] = '\0';
             text[--text_index] = '\0';
             strcat(text, &text[text_index+2]);
+            delete_Chinese_index();
         }
         else
         {
@@ -223,6 +229,8 @@ void Delete_one_char(int is_LEFT)
         }
         //cursor move
         char_width = TextStringWidth(temp_char);
+        if (GetCurrentX() - char_width < Start_X)
+            MovePen(last_char_X[--current_line], GetCurrentY() + line_height);
         MovePen(GetCurrentX()-char_width,GetCurrentY());
         DrawTextString(temp_char);
         MovePen(GetCurrentX()-char_width-TextStringWidth("|"),GetCurrentY());
@@ -362,7 +370,7 @@ void insert_char(unsigned char c)
 {
     int index;
     index = strlen(text);
-    text[text_index + 1] = '\0'; 
+    text[index + 1] = '\0'; 
     while(index > text_index)
     {
         text[index] = text[index - 1];
@@ -374,14 +382,19 @@ void insert_char(unsigned char c)
 }
 void get_near_char(int is_LEFT)
 {  
+    int loop;
     if (is_LEFT)
     {
-        if (text[text_index - 2] > 127)
+        for (loop = 0;loop < Chinese_counter;loop++)
         {
-            temp_char[0] = text[text_index - 2];
-            temp_char[1] = text[text_index - 1];
+            if (text_index == record_Chinese_index[loop])
+            {
+                temp_char[0] = text[text_index - 2];
+                temp_char[1] = text[text_index - 1];
+                break;
+            }
         }
-        else
+        if (strlen(temp_char) != 2)
             temp_char[0] = text[text_index - 1];
     }
     else
@@ -399,4 +412,20 @@ void clear_temp_char()
 {
     temp_char[0] = '\0';
     temp_char[1] = '\0';
+}
+
+void delete_Chinese_index()
+{
+    int index;
+    for (index = 0; index < Chinese_counter; index++)
+    {
+        if (record_Chinese_index[index] == text_index + 2)
+            break;
+    }
+    while(index < Chinese_counter)
+    {
+        record_Chinese_index[index] = record_Chinese_index[index + 1];
+        index++;
+    }
+    Chinese_counter--;
 }
