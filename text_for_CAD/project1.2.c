@@ -45,7 +45,9 @@ typedef struct CAD_Text{
     double Start_X;
     double Start_Y;
     //Start_X and Start_Y are where the text start
-
+    double tail_char_Y;
+    double tail_char_X;
+    struct CAD_Text* next;
 }CAD_TEXT;
 
 bool is_display = FALSE;
@@ -64,6 +66,8 @@ void insert_char(unsigned char c);
 void get_near_char(int is_LEFT);
 void clear_temp_char();
 void delete_Chinese_index();
+void Redraw_all();
+void is_chosen(double mouse_x,double mouse_y);
 
 void CharEventProcess(char c);
 void keyboardEventProcess(int key,int event);
@@ -80,6 +84,8 @@ CAD_TEXT global_text={FALSE,
                         0,
                         0,
                         {0},
+                        0,
+                        0,
                         0,
                         0};
 void Main()
@@ -219,6 +225,8 @@ void Draw_one_char(unsigned char c)
         DrawTextString(global_text.draw_char);
         global_text.draw_char[0] ='\0';
         global_text.draw_char[1] = '\0';
+        global_text.tail_char_Y = GetCurrentY();
+        global_text.tail_char_X = GetCurrentY();
     } 
 }
 
@@ -443,4 +451,34 @@ void delete_Chinese_index()
         index++;
     }
     global_text.Chinese_counter--;
+}
+
+void Redraw_all()
+{
+    int index = 0;
+    double original_x,original_y;
+    original_x = GetCurrentX();
+    original_y = GetCurrentY();
+    //record current x,y
+    MovePen(Start_X, Start_Y);
+    SetEraseMode(TRUE);
+    while (index < strlen(global_text.text_index))
+        Draw_one_char(global_text.text[index]);
+    SetEraseMode(FALSE);
+    index = 0;
+    MovePen(Start_X, Start_Y);
+    while (index < strlen(global_text.text_index))
+        Draw_one_char(global_text.text[index]);
+    MovePen(original_x, original_y);
+    //reset x,y
+}
+
+void is_chosen(CAD_TEXT *global_text,double mouse_x, ,double mouse_y)
+{
+    if ((mouse_x < GetWindowWidth() && mouse_x >= Start_X) 
+        && (mouse_y <= (Start_Y + line_height) && mouse_y >= global_text.tail_char_Y ))
+        if ((mouse_x > global_text.tail_char_X  && mouse_y < global_text.tail_char_Y + line_height))
+            return FALSE;
+        else
+            return TRUE;
 }
