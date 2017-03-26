@@ -22,7 +22,6 @@
 #define RIGHT FALSE
 #define INSERT TRUE
 #define NOT_INSERT FALSE
-#define Start_X 0
 const int ms500 = 500;
 
 typedef struct CAD_Text{
@@ -43,6 +42,10 @@ typedef struct CAD_Text{
     //record the width of char which is deleted
     double last_char_X[10];
     //record every line's last char's x location
+    double Start_X;
+    double Start_Y;
+    //Start_X and Start_Y are where the text start
+
 }CAD_TEXT;
 
 bool is_display = FALSE;
@@ -68,22 +71,21 @@ void TimerEventProcess(int timerID);
 void startTimer(int timerID, int timeinterval);
 
 CAD_TEXT global_text={FALSE,
-            {0},
-            {'\0', '\0', '\0'},
-            {'\0', '\0', '\0'},
-            {0},
-            0,
-            0,
-            0,
-            0,
-            {0}};
+                        {0},
+                        {'\0', '\0', '\0'},
+                        {'\0', '\0', '\0'},
+                        {0},
+                        0,
+                        0,
+                        0,
+                        0,
+                        {0},
+                        0,
+                        0};
 void Main()
 {
-    double cy;
-    InitConsole();
     InitGraphics();
-    cy = GetWindowHeight()/2;
-    MovePen(Start_X, cy);
+    MovePen(Start_X, Start_Y);
     registerCharEvent(CharEventProcess);
     registerKeyboardEvent(keyboardEventProcess);
     registerTimerEvent(TimerEventProcess);
