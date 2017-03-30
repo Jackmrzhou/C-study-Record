@@ -26,6 +26,8 @@ const int ms500 = 500;
 
 typedef struct CAD_Text{
     bool is_Chinese;
+    bool IsChosen;
+    bool CanDeleted;
     unsigned char text[1000];
     //store text
     unsigned char temp_char[3];
@@ -44,9 +46,9 @@ typedef struct CAD_Text{
     //record every line's last char's x location
     double Start_X;
     double Start_Y;
-    //Start_X and Start_Y are where the text start
-    double tail_char_Y;
     double tail_char_X;
+    double tail_char_Y;
+    //Start_X and Start_Y are where the text start
     struct CAD_Text* next;
 }CAD_TEXT;
 
@@ -59,6 +61,7 @@ void cancelTimer(int timeID);
 void ReDraw_text(int is_insert);
 void cursor_move(int is_LEFT);
 void Draw_one_char(unsigned char c);
+void New_Draw_one_char(unsigned char c, CAD_TEXT *global_text);
 void Delete_one_char(int is_LEFT);
 void Erase_cursor();
 void insert_char(unsigned char c);
@@ -67,14 +70,18 @@ void get_near_char(int is_LEFT);
 void clear_temp_char();
 void delete_Chinese_index();
 void Redraw_all();
-void is_chosen(double mouse_x,double mouse_y);
+int is_chosen(CAD_TEXT * global_text, double mouse_x, double mouse_y);
+void Initialize();
 
 void CharEventProcess(char c);
-void keyboardEventProcess(int key,int event);
 void TimerEventProcess(int timerID);
-void startTimer(int timerID, int timeinterval);
+void startTimer(int timerID, int timeinterval); 
+void INIT_TEXT(double Start_X, double Start_Y);
 
-CAD_TEXT global_text={FALSE,
+
+CAD_TEXT global_text={  FALSE,
+                        FALSE,
+                        FALSE,
                         {0},
                         {'\0', '\0', '\0'},
                         {'\0', '\0', '\0'},
@@ -87,90 +94,26 @@ CAD_TEXT global_text={FALSE,
                         0,
                         0,
                         0,
-                        0};
-void Main()
-{
-    InitGraphics();
-    MovePen(Start_X, Start_Y);
-    registerCharEvent(CharEventProcess);
-    registerKeyboardEvent(keyboardEventProcess);
-    registerTimerEvent(TimerEventProcess);
-    startTimer(cursor_500, ms500);
-}
-void CharEventProcess(char c)
-{
-    if (c == '\r')
-    {
-        int lenth;
-        lenth = strlen(global_text.text);
-        global_text.text[lenth] = '\0';
-        puts(global_text.text);
-    }
-    else if (c == VK_BACK || c == VK_DELETE || c == VK_SPACE)
-        return;
-        // prevent outputing nonsense characters
-        //space is not allowed
-    else
-	{   
-        if (global_text.text_index == strlen(global_text.text))
-        {
-            Draw_one_char(c);
-            global_text.text[global_text.text_index++] = c;
-        }
-        else
-        {
-            if (!global_text.is_Chinese && c < 0)
-            //the prototype of function is (char c) so when Chinese the c is negative
-            {
-                global_text.is_Chinese = TRUE;
-                insert_char(c);
-            }
-            else if (global_text.is_Chinese)
-            {
-                global_text.is_Chinese = FALSE;
-                global_text.record_Chinese_index[global_text.Chinese_counter++] = global_text.text_index + 1;
-                insert_char(c);
-                global_text.text_index--;
-            }
-            else
-                insert_char(c);
-            if (!global_text.is_Chinese)
-                ReDraw_text(INSERT);
-        }
-	}
-}
-void keyboardEventProcess(int key,int event)
-{
-    switch (event)
-    {
-        case KEY_DOWN:
-            switch(key)
-            {
-                case VK_BACK:
-                    if (global_text.text_index > 0)
-                    {
-                        Delete_one_char(LEFT);
-                        ReDraw_text(NOT_INSERT);
-                    }
-                    break;
-                case VK_DELETE:
-                    if (global_text.text_index < strlen(global_text.text))
-                    {
-                        Delete_one_char(RIGHT);
-                        ReDraw_text(NOT_INSERT);
-                    }
-                    break;
-                case VK_LEFT:
-                    if (global_text.text_index > 0)
-                        cursor_move(LEFT);
-                    break;
-                case VK_RIGHT:
-                    if (global_text.text_index < strlen(global_text.text))
-                        cursor_move(RIGHT);
-                    break;
-            }
-    }
-}
+                        0,
+						NULL};
+CAD_TEXT ALL_ZERO={  FALSE,
+                        FALSE,
+                        FALSE,
+                        {0},
+                        {'\0', '\0', '\0'},
+                        {'\0', '\0', '\0'},
+                        {0},
+                        0,
+                        0,
+                        0,
+                        0,
+                        {0},
+                        0,
+                        0,
+                        0,
+                        0,
+						NULL};
+void INIT_TEXT(double Start_X, double Start_Y);
 
 void TimerEventProcess(int timerID)
 {
@@ -197,6 +140,21 @@ void TimerEventProcess(int timerID)
 
     }
 }
+void INIT_TEXT(double Start_X, double Start_Y)
+{
+
+    MovePen(Start_X, Start_Y);
+    global_text.Start_X = Start_X;
+    global_text.Start_Y = Start_Y;
+
+//    registerKeyboardEvent(keyboardEventProcess);
+
+    registerTimerEvent(TimerEventProcess);
+
+    startTimer(cursor_500, ms500);
+
+}
+
 void Erase_cursor()
 {
     SetEraseMode(TRUE);
@@ -217,7 +175,7 @@ void Draw_one_char(unsigned char c)
     if (GetCurrentX() + TextStringWidth(global_text.draw_char) > GetWindowWidth())
     {
         global_text.last_char_X[global_text.current_line++] = GetCurrentX();
-        MovePen(Start_X, GetCurrentY() - line_height);
+        MovePen(global_text.Start_X, GetCurrentY() - line_height);
     }
     if (global_text.draw_char[0] <= 127 || global_text.draw_char[1] != '\0')
     {
@@ -226,9 +184,33 @@ void Draw_one_char(unsigned char c)
         global_text.draw_char[0] ='\0';
         global_text.draw_char[1] = '\0';
         global_text.tail_char_Y = GetCurrentY();
-        global_text.tail_char_X = GetCurrentY();
-    } 
+        global_text.tail_char_X = GetCurrentX();
+    }
 }
+
+void New_Draw_one_char(unsigned char c, CAD_TEXT *global_text)
+{
+	int CurrentLine = global_text->current_line;
+    if (global_text->draw_char[0] == '\0')
+        global_text->draw_char[0] = c;
+    else
+        global_text->draw_char[1] = c;
+    if (is_display)
+        Erase_cursor();
+    if (GetCurrentX() + TextStringWidth(global_text->draw_char) > GetWindowWidth())
+    {
+        global_text->last_char_X[CurrentLine++] = GetCurrentX();
+        MovePen(global_text->Start_X, GetCurrentY() - line_height);
+    }
+    if (global_text->draw_char[0] <= 127 || global_text->draw_char[1] != '\0')
+    {
+        MovePen(GetCurrentX() + TextStringWidth("|"), GetCurrentY());
+        DrawTextString(global_text->draw_char);
+        global_text->draw_char[0] ='\0';
+        global_text->draw_char[1] = '\0';
+    }
+}
+
 
 void Delete_one_char(int is_LEFT)
 {
@@ -252,7 +234,7 @@ void Delete_one_char(int is_LEFT)
         }
         //cursor move
         global_text.char_width = TextStringWidth(global_text.temp_char);
-        if (GetCurrentX() - global_text.char_width < Start_X)
+        if (GetCurrentX() - global_text.char_width < global_text.Start_X)
             MovePen(global_text.last_char_X[--global_text.current_line], GetCurrentY() + line_height);
         MovePen(GetCurrentX()-global_text.char_width,GetCurrentY());
         DrawTextString(global_text.temp_char);
@@ -312,7 +294,7 @@ void cursor_move(int is_LEFT)
             MovePen(GetCurrentX()+TextStringWidth(global_text.temp_char)+TextStringWidth("|"), GetCurrentY());
         else
         {
-            MovePen(Start_X, GetCurrentY() - line_height);
+            MovePen(global_text.Start_X, GetCurrentY() - line_height);
             global_text.current_line++;
             global_text.text_index = (global_text.temp_char[1] == '\0')?(global_text.text_index - 1):(global_text.text_index - 2);
         }
@@ -452,33 +434,67 @@ void delete_Chinese_index()
     }
     global_text.Chinese_counter--;
 }
-
-void Redraw_all()
+void Redraw_all(CAD_TEXT *global_text)
 {
     int index = 0;
     double original_x,original_y;
     original_x = GetCurrentX();
     original_y = GetCurrentY();
     //record current x,y
-    MovePen(Start_X, Start_Y);
-    SetEraseMode(TRUE);
-    while (index < strlen(global_text.text_index))
-        Draw_one_char(global_text.text[index]);
-    SetEraseMode(FALSE);
-    index = 0;
-    MovePen(Start_X, Start_Y);
-    while (index < strlen(global_text.text_index))
-        Draw_one_char(global_text.text[index]);
-    MovePen(original_x, original_y);
+    MovePen(global_text->Start_X, global_text->Start_Y);
+    while (index < strlen(global_text->text))
+    {
+    	New_Draw_one_char(global_text->text[index], global_text);
+    	index ++;
+    }
+    global_text->tail_char_X = GetCurrentX();
+    global_text->tail_char_Y = GetCurrentY();
+	MovePen(original_x, original_y);
     //reset x,y
 }
 
-void is_chosen(CAD_TEXT *global_text,double mouse_x, ,double mouse_y)
+/*int ChooseText(CAD_TEXT *global_text, double mouse_x, double mouse_y)
 {
-    if ((mouse_x < GetWindowWidth() && mouse_x >= Start_X) 
-        && (mouse_y <= (Start_Y + line_height) && mouse_y >= global_text.tail_char_Y ))
-        if ((mouse_x > global_text.tail_char_X  && mouse_y < global_text.tail_char_Y + line_height))
-            return FALSE;
-        else
+	CAD_TEXT *pointT;
+    GraNode *pointG;
+	pointT = SearchDeletedText();
+    pointG = SearchChosen();
+
+    if ((global_text -> Start_Y - global_text -> tail_char_Y) == 0)
+        if (mouse_x >= global_text -> Start_X && mouse_x <= global_text -> tail_char_X\
+            && (mouse_y <= global_text -> Start_Y + line_height) && mouse_y >= global_text -> Start_Y)
+        {
+        	if(pointT != NULL)
+        	{
+        		pointT->CanDeleted = FALSE;
+        	}
+            if(pointG != NULL)
+            {
+                pointG->CanDeleted = FALSE;
+            }
+            global_text->CanDeleted = TRUE;
+            global_text->IsChosen = TRUE;
             return TRUE;
+        }
+        else
+        {
+        	return FALSE;
+        }
+	else if (mouse_x >= global_text -> Start_X && mouse_y >= global_text -> tail_char_Y && (mouse_y <= global_text -> Start_Y +line_height))
+    {
+        global_text->CanDeleted = TRUE;
+        global_text->IsChosen = TRUE;
+        return TRUE;
+    }
+    else
+    {
+    	return FALSE;
+    }
+            
+}*/
+
+void Initialize()
+{
+	 global_text = ALL_ZERO;
 }
+
