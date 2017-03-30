@@ -8,3 +8,4 @@ learn
 *.layout
 *.win
 *.exe
+.vscode
