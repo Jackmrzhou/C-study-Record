@@ -1,7 +1,7 @@
 #include <stdio.h>
 int result[100];
 int number;
-void division(int number,int index);
+void division(int num,int index);
 int main(void)
 {
     int index;
