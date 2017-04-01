@@ -1,5 +1,10 @@
 #include <stdio.h>
 #include <stdlib.h>
+typedef struct STRUCT_MAZE{
+    int map[10][10];
+    int out_X;
+    int out_Y;
+}MAZE;
 typedef struct Array_node{
     int data[2];
     struct Array_node *next;
@@ -51,5 +56,5 @@ void print_path(link_array *head,MAZE *maze)
         p = p->next;
         printf("(%d,%d)",p->data[0],p->data[1]);
     }
-    while (p->next != head && (p->data[0] != maze->out_X && p-> != maze->out_Y));
+    while (p->next != head && ((p->data[0] != maze->out_X) || (p->data[1] != maze->out_Y)));
 }

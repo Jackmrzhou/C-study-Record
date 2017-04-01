@@ -8,6 +8,5 @@ typedef struct Array_node{
 link_array *create_link();
 link_array *insert_node(link_array *head,link_array *array);
 void print_link_array(link_array *head);
-void clear_link(link_array *head);
 
 #endif
