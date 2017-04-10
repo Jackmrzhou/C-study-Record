@@ -1,6 +1,6 @@
 #include <stdio.h>
 #include <winsock2.h>
-#include "test.h"
+#include "NetThread.h"
 #define default_port 5000
 #pragma comment (lib, "ws2_32.lib")
 char* getIP(); 
