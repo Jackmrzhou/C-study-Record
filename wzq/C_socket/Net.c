@@ -12,18 +12,16 @@ void Start_Server(void)
     WSADATA wsaData;
     WSAStartup(MAKEWORD(2, 2), &wsaData);
 
-    //ip = getIP();
-    ip = "127.0.0.1";
-    puts(ip);
+    ip = getIP();
 
-	SOCKET ServeSocket = socket(AF_INET, SOCK_STREAM, 0);
-	struct sockaddr_in Serve_addr;
-	memset(&Serve_addr, 0, sizeof(Serve_addr));
-	Serve_addr.sin_family = AF_INET;
-	Serve_addr.sin_addr.s_addr = inet_addr(ip);
-	Serve_addr.sin_port = htons(default_port);
+    SOCKET ServeSocket = socket(AF_INET, SOCK_STREAM, 0);
+    struct sockaddr_in Serve_addr;
+    memset(&Serve_addr, 0, sizeof(Serve_addr));
+    Serve_addr.sin_family = AF_INET;
+    Serve_addr.sin_addr.s_addr = inet_addr(ip);
+    Serve_addr.sin_port = htons(default_port);
 
-	ret = bind(ServeSocket, (SOCKADDR*)&Serve_addr, sizeof(SOCKADDR));
+    ret = bind(ServeSocket, (SOCKADDR*)&Serve_addr, sizeof(SOCKADDR));
     if (ret == SOCKET_ERROR)
     {
         printf("Bind Error!");
@@ -32,7 +30,7 @@ void Start_Server(void)
         return;
     }
 
-	ret = listen(ServeSocket, 1);
+    ret = listen(ServeSocket, 1);
     if (ret == SOCKET_ERROR)
     {
         printf("Listen Error!");
@@ -40,7 +38,7 @@ void Start_Server(void)
         WSACleanup();
         return;
     }
-	printf("start listening...");
+    printf("start listening...");
 
     struct sockaddr_in ClientAddr;
     int nSize = sizeof(SOCKADDR);
@@ -53,6 +51,7 @@ void Start_Server(void)
         return;
     }
     printf("Accept one connect.")
+    IsConnected = 1;
     while (1)
     {
         while(1)
@@ -117,6 +116,7 @@ void Start_Client(char * ip)
         return;
     }
     printf("Successfully connected!");
+    IsConnected = 1;
     while (1)
     {
         char recvData[1024]={0};
