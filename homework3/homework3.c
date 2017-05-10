@@ -25,15 +25,15 @@ int main(void)
     {
         test_node = (list*)malloc(sizeof(list));
         test_node -> num = loop;
-        insert_node(head_1, test_node);
+        insert_node(head_2, test_node);
     }
     for (loop = 6;loop <= 10; loop++)
     {
         test_node = (list*)malloc(sizeof(list));
         test_node -> num = loop;
-        insert_node(head_2, test_node);
-    }   
-    */
+        insert_node(head_1, test_node);
+    } 
+    */  
     //test code
     list *head;
     head = merge_list(head_1, head_2);
@@ -46,7 +46,7 @@ list* init_list()
     head = (list *)malloc(sizeof(list));
     head->num = -1;
     //init head num with -1;
-    head->before = head;
+    head->before = NULL;
     head->next = NULL;
     return head;
 }
@@ -68,46 +68,62 @@ void print_list(list * head)
         printf("%d ", p->num);
         p = p->next;
     }
+    if(p==NULL)
+        puts("NULL");
 }
 list * merge_list(list * head_1, list *head_2)
 {
-    list *p = head_1;
-    list* loop_p = head_1->next;
-    int free_node = 0;
-    while (p -> next != NULL)
-        p = p->next;
-    head_2->next->before = p;
-    p->next = head_2->next;
-    p = head_1->next;
-    //print_list(head_1);
-    while(p->next != NULL)
-    {
-        while(loop_p != p)
-        {
-            //printf("loop_p:%d\n", loop_p->num);
-            if (loop_p -> num == p -> num)
-               {
-                    free_node = 1;
-                    break;
-                }
-            loop_p = loop_p -> next;
-        }
-        loop_p = head_1->next;
-        if (free_node == 1)
-        {
-            //delete current node
-            p->before->next = p->next;
-            p->next->before = p->before;
-            list *q = p->next;
-            free(p);
-            p = q;
+	list * phead_1 = head_1->next, *phead_2 = head_2->next;
+	int free_node = 0,is_insert=0;
+    list *temp_node;
+	while(phead_2 != NULL)
+	{
+		while(phead_1 != NULL)
+		{
+			if(phead_1->num == phead_2->num)
+			{
+				free_node = 1;
+				break;
+			}
+			else if (phead_1->num > phead_2->num)
+			{
+                is_insert = 1;
+				phead_1->before->next = phead_2;
+				phead_2->before = phead_1->before;
+                temp_node = phead_2->next;
+				phead_2->next = phead_1;
+				phead_1->before = phead_2;
+				break;
+			}
+            else if (phead_1->next == NULL)
+            {
+                is_insert=1;
+                phead_1 -> next = phead_2;
+                phead_2->before = phead_1;
+                temp_node = phead_2->next;
+                phead_2->next = NULL;
+                break;
+            }
+            else
+    			phead_1 = phead_1->next;
+		}
+		phead_1 = head_1->next;
+		if(free_node == 1)
+		{
+			temp_node = phead_2;
             free_node = 0;
+            phead_2 = phead_2->next;
+            free(temp_node);
+		}
+        else if (is_insert == 1)
+        {
+            is_insert = 0;
+            phead_2 = temp_node;
         }
-        else 
-            p = p->next;
-        //printf("%d  ", p->num);
-    }
-    return head_1;
+		else 
+			phead_2 = phead_2 ->next;
+	}
+	return head_1;
 }
 void input_list(list *head)
 {
