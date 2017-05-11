@@ -15,14 +15,18 @@ struct node{
 struct test_node{
 	int test_int;
 	int test_array[2];
-	//struct list_head list_node;
 };
 struct an_test_node{
 	char test_ch;
-	//struct list_head list_node;
 };
-void init_head(struct list_head *head);
-void add_node(struct list_head *head, struct list_head *new);
+inline void init_head(struct list_head *head);
+inline void head_insert(struct list_head *head, struct list_head * new);
+inline void tail_insert(struct list_head *tail, struct list_head * new);
+inline void list_insert(struct list_head *pre,struct list_head *nex, struct list_head *new);
+inline void node_delete(struct list_head *pre, struct list_head *nex);
+inline int is_list_empty(const struct list_head * head);
+int get_list_lenth(const struct list_head *head);
+struct node* get_item(const struct list_head *head,int item_type,int count);
 int main()
 {
 	/*printf("%lu\n",sizeof(int));
@@ -43,24 +47,72 @@ int main()
 	struct list_head *head;
 	head = (struct list_head*)malloc(sizeof(struct list_head));
 	init_head(head);
-	add_node(head, &(my_node_1.list_node));
-	add_node(head, &(my_node_2.list_node));
+	head_insert(head, &(my_node_1.list_node));
+	head_insert(head, &(my_node_2.list_node));
 	struct node *temp_node;
 	temp_node = container_of(head->next, struct node, list_node);
 	printf("%c\n",((struct an_test_node*)(temp_node->data))->test_ch);
 	temp_node = container_of(head->next->next, struct node, list_node);
 	printf("%d\n", ((struct test_node*)(temp_node->data))->test_int);
+	node_delete(head,head->next->next);
+	temp_node = container_of(head->next, struct node, list_node);
+	printf("%d\n", ((struct test_node*)(temp_node->data))->test_int);
+	temp_node = get_item(head,struct_test_node,1);
+	printf("%d\n", ((struct test_node*)(temp_node->data))->test_int);
 	return 0;
 }
-void init_head(struct list_head *head)
+inline void init_head(struct list_head *head)
 {
 	head->next = head;
 	head->before = head;
 }
-void add_node(struct list_head *head,struct list_head* new)
+inline void head_insert(struct list_head *head,struct list_head* new)
 {
-	new->next = head->next;
-	head->next->before = new;
-	head->next = new;
-	new->before = head;
+	list_insert(head, head->next, new);
+}
+inline void tail_insert(struct list_head *tail, struct list_head * new)
+{
+	list_insert(tail->before, tail, new);
+}
+inline void list_insert(struct list_head *pre,struct list_head *nex, struct list_head *new)
+{
+	pre->next = new;
+	new->before = pre;
+	new->next = nex;
+	nex->before = new;
+}
+inline void node_delete(struct list_head * pre,struct list_head *nex)
+{
+	pre->next = nex;
+	free(container_of(nex->before,struct node, list_node));
+	nex->before = pre;
+}
+inline int is_list_empty(const struct list_head *head)
+{
+	return head->next == head;
+}
+int get_list_lenth(const struct list_head *head)
+{
+	int count = 0;
+	struct list_head *p = head->next;
+	while(p != head)
+	{
+		++count;
+		p = p->next;
+	}
+	return count;
+}
+struct node* get_item(const struct list_head *head,const int item_type, int count)
+{
+	struct list_head *p = head->next;
+	while(p != head)
+	{
+		if ((container_of(p, struct node, list_node))->type == item_type)
+			--count;
+		if (count == 0)
+			return container_of(p, struct node, list_node);
+		p = p->next;
+	}
+	return (struct node*)(0);
+	//not found
 }
