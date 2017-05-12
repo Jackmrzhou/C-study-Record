@@ -25,6 +25,7 @@ inline void tail_insert(struct list_head *tail, struct list_head * new);
 inline void list_insert(struct list_head *pre,struct list_head *nex, struct list_head *new);
 inline void node_delete(struct list_head *pre, struct list_head *nex);
 inline int is_list_empty(const struct list_head * head);
+void merge_list(struct list_head *head_1, struct list_head * head_2);
 int get_list_lenth(const struct list_head *head);
 struct node* get_item(const struct list_head *head,int item_type,int count);
 int main()
@@ -34,31 +35,49 @@ int main()
 	printf("%lu\n",sizeof(struct node));
 	printf("%lu\n",sizeof(struct list_head));*/
 	struct test_node test_node_1;
-	struct an_test_node test_node_2;
+	struct an_test_node test_node_2,test_node_3;
 	test_node_1.test_int = 10;
 	test_node_1.test_array[0]=1;
 	test_node_1.test_array[1]=2;
 	test_node_2.test_ch = 'a';
-	struct node my_node_1,my_node_2;
+	test_node_3.test_ch = 'b';
+	struct node my_node_1,my_node_2,my_node_3;
 	my_node_1.data = &test_node_1;
 	my_node_1.type = struct_test_node;
 	my_node_2.data = &test_node_2;
 	my_node_2.type = struct_an_test_node;
+	my_node_3.data = &test_node_3;
+	my_node_3.type = struct_an_test_node;
 	struct list_head *head;
 	head = (struct list_head*)malloc(sizeof(struct list_head));
 	init_head(head);
 	head_insert(head, &(my_node_1.list_node));
 	head_insert(head, &(my_node_2.list_node));
+	//test insert
 	struct node *temp_node;
 	temp_node = container_of(head->next, struct node, list_node);
 	printf("%c\n",((struct an_test_node*)(temp_node->data))->test_ch);
+
 	temp_node = container_of(head->next->next, struct node, list_node);
 	printf("%d\n", ((struct test_node*)(temp_node->data))->test_int);
+
 	node_delete(head,head->next->next);
+	//test delete
 	temp_node = container_of(head->next, struct node, list_node);
 	printf("%d\n", ((struct test_node*)(temp_node->data))->test_int);
 	temp_node = get_item(head,struct_test_node,1);
+	//test get_item
 	printf("%d\n", ((struct test_node*)(temp_node->data))->test_int);
+	struct list_head * head_2;
+	head_2 = (struct list_head *)malloc(sizeof(struct list_head));
+	init_head(head_2);
+	head_insert(head_2, &(my_node_3.list_node));
+	merge_list(head, head_2);
+	//test merge_list
+	int i;
+	i = get_list_lenth(head);
+	//test get_list_lenth
+	printf("#%d#\n",i);
 	return 0;
 }
 inline void init_head(struct list_head *head)
@@ -115,4 +134,12 @@ struct node* get_item(const struct list_head *head,const int item_type, int coun
 	}
 	return (struct node*)(0);
 	//not found
+}
+void merge_list(struct list_head *head_1, struct list_head * head_2)
+{
+	struct list_head *tail_1 = head_1->before, * tail_2 = head_2->before;
+	tail_1->next = head_2->next;
+	head_2->next->before = tail_1;
+	tail_2->next = head_1;
+	head_1->before = tail_2;
 }
