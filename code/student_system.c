@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <windows.h>
 #define Stu_Size sizeof(Student)
 enum{Name, Number};
 typedef struct student{
@@ -11,7 +12,7 @@ typedef struct student{
     double average_score;
     struct student *next,*before;
 } Student;
-int course_total = 6;
+int course_total = 0;
 Student * init_head(Student *head);
 void insert_node(Student *pre, Student *nex, Student *new);
 Student * query_student(const Student* head, int type,void *args);
@@ -27,6 +28,9 @@ double get_course_score(const Student * head,int course_num, int is_average);
 void print_score_statistics(const Student* head);
 void sort_by_score(const Student * head, int is_low_to_high);
 void print_rank_score(const Student *temp, const Student *head);
+void write_into_file(FILE *fp, Student *head);
+Student * read_from_file(FILE *fp);
+void parse_score(int *score, char *p);
 int main(void)
 {
     Student *head;
@@ -73,7 +77,12 @@ int main(void)
     print_info(head);
     //test print_info
     */
-
+    FILE *fp;
+    if((fp = fopen("students.txt","a+"))==NULL)
+    {
+        printf("Open or Make file ERROR!");
+        exit(0);   
+    }
     int choice;
     print_choice();
     for (;;)
@@ -90,8 +99,11 @@ int main(void)
                 scanf("%d", &(node->number));
                 printf("Please input student's name:\n");
                 scanf("%s",node->name);
-                printf("Please input the number of courses:\n");
-                scanf("%d",&course_total);
+                if (course_total == 0)
+                {
+                    printf("Please input the number of courses:\n");
+                    scanf("%d",&course_total);
+                }
                 printf("Please input each course's score:\n");
                 int i;
                 for(i = 0; i != course_total; ++i)
@@ -102,7 +114,7 @@ int main(void)
                 printf("Insert succeeded!\n");
             }
             break;
-            case 2:
+            case 2://test pass
             {
                 int i;
                 for(i = 0;i < course_total;++i)
@@ -112,7 +124,7 @@ int main(void)
                 }
             }
             break; 
-            case 3:
+            case 3://test pass
             {
                 Student *p = head->next;
                 while(p != head)
@@ -123,27 +135,27 @@ int main(void)
                 }
             }
             break;
-            case 4:
+            case 4://test pass
             {
                 print_sort_score(head, 0);
             }
             break;
-            case 5:
+            case 5://test pass
             {
                 print_sort_score(head, 1);
             }
             break;
-            case 6:
+            case 6://test pass
             {
                 print_sort_number(head);
             }
             break;
-            case 7:
+            case 7://test pass
             {
                 print_sort_name(head);
             }
             break;
-            case 8:
+            case 8://test pass
             {
                 Student * temp;
                 int number_choice;
@@ -154,7 +166,7 @@ int main(void)
                 print_rank_score(temp, head);
             }
             break;
-            case 9:
+            case 9://test pass
             {
                 Student * temp;
                 char *p;
@@ -171,23 +183,34 @@ int main(void)
                 print_rank_score(temp, head);
             }
             break;
-            case 10:
+            case 10://test pass
             {
                 print_score_statistics(head);
             }
             break; 
-            case 11:
+            case 11://test pass
             {
                 print_info(head);
             }
             break;
-            case 12:
+            case 12://test pass
+            {
+                write_into_file(fp,head);
+                printf("Write succeeded!\n");
+            }
             break;
-            case 13:
+            case 13://test pass
+            {
+                head = read_from_file(fp);
+                printf("Read succeeded!\n");
+            }
             break;
             case 0:
+            {
+                fclose(fp);
                 exit(1);
-                break;     
+            }
+            break;     
         }
     }
     return 0;
@@ -251,25 +274,29 @@ void print_info(const Student *head)
         printf("\n");
         p = p->next;
     }
-    puts("\n");
+    //puts("\n");
 }
 void sort_by_score(const Student * head, int is_low_to_high)
 {
-    Student *p_1 = head->next,*p_2 = head->next;
-    while(p_1 != head)
-    {
-        while(p_2 != head)
+    Student *p_1 = (Student*)head,*p_2 = head->next;
+    while(p_1 != head->next)
+    {      
+        while(p_2->next != p_1)
         {
             if (p_2->total_score > p_2->next->total_score)
                 if (is_low_to_high)
+                {
                     switch_node(p_2->next);
+                }
                 else;
             else if (!is_low_to_high)
+            {
                 switch_node(p_2->next);
+            }
             p_2 = p_2->next;
         }
-        p_1 = p_1->next;
-        p_2 = p_1;
+        p_1 = p_1->before;
+        p_2 = head->next;
     }
 }
 void print_sort_score(const Student * head, int is_low_to_high)
@@ -286,15 +313,40 @@ void print_sort_score(const Student * head, int is_low_to_high)
     }
 }
 
-void switch_node(Student *p)
+void switch_node(Student *node)
 {
+    Student * p =node;
     Student* q=p->before; 
+    int temp;
+    char temp_s[12];
+    temp = p->number;
+    p->number = q->number;
+    q->number = temp;
+    temp = p->total_score;
+    p->total_score = q->total_score;
+    q->total_score = temp;
+    double temp_d;
+    temp_d = p->average_score;
+    p->average_score = q->average_score;
+    q->average_score = temp_d;
+    strcpy(temp_s,p->name);
+    strcpy(p->name,q->name);
+    strcpy(q->name,temp_s);
+    int i;
+    for (i=0; i != course_total; ++i)
+    {
+        temp = p->score[i];
+        p->score[i] = q->score[i];
+        q->score[i] = temp;
+    }
+    /*
     q->before->next=p;
     p->before=q->before;
     q->next=p->next;
     q->before=p;
     p->next->before=q;
     p->next=q;
+    */
 }
 
 void print_choice()
@@ -303,7 +355,7 @@ void print_choice()
     printf("3. Caculate total and adverage score of every student\n");
     printf("4. Sort in descending order by total score of every student\n");
     printf("5. Sort in ascending order by total score of every student\n");
-    printf("6. Sort in ascending order by number\n7. Sort in dictionary order by name");
+    printf("6. Sort in ascending order by number\n7. Sort in dictionary order by name\n");
     printf("8. Search by number\n9. Search by name\n10. Statistic analysis for every course\n");
     printf("11.List record\n12.Write to a file\n13.Read from a file\n0. Exit\n");
 }
@@ -331,17 +383,17 @@ void print_score_list(const Student *head)
 
 void print_sort_number(const Student *head)
 {
-    Student *p_1 = head->next,*p_2 = head->next;
-    while(p_1 != head)
-    {
-        while(p_2 != head)
+    Student *p_1 = (Student*)head,*p_2 = head->next;
+    while(p_1 != head->next)
+    {      
+        while(p_2->next != p_1)
         {
             if (p_2->number > p_2->next->number)
                 switch_node(p_2->next);
             p_2 = p_2->next;
         }
-        p_1 = p_1->next;
-        p_2 = p_1;
+        p_1 = p_1->before;
+        p_2 = head->next;
     }
     print_score_list(head);
 }
@@ -363,17 +415,17 @@ double get_course_score(const Student * head,int course_num,int is_average)
 
 void print_sort_name(const Student *head)
 {
-    Student *p_1 = head->next,*p_2 = head->next;
-    while(p_1 != head)
+    Student *p_1 = (Student*)head,*p_2 = head->next;
+    while(p_1 != head->next)
     {
-        while(p_2 != head)
+        while(p_2->next != p_1)
         {
             if (stricmp(p_2->name, p_2->next->name) > 0)
                 switch_node(p_2->next);
             p_2 = p_2->next;
         }
-        p_1 = p_1->next;
-        p_2 = p_1;
+        p_1 = p_1->before;
+        p_2 = head->next;
     }
     print_score_list(head);
 }
@@ -426,4 +478,47 @@ void print_rank_score(const Student *temp, const Student *head)
     for (course_sq = 0; course_sq < course_total; ++course_sq)
         printf("%d ",p->score[course_sq]);
     printf("\n");
+}
+
+void write_into_file(FILE *fp, Student *head)
+{
+    Student *p = head->next;
+    int course_sq;
+    while(p != head)
+    {
+        fprintf(fp,"Number:%d; Name:%s; ",p->number, p->name);
+        fprintf(fp,"every course: ");
+        for (course_sq = 0; course_sq < course_total; ++course_sq)
+            fprintf(fp,"%d ",p->score[course_sq]);
+        fprintf(fp,";total score: %d; average score: %.1lf;",p->total_score, p->average_score);
+        fprintf(fp,"\n");
+        p = p->next;
+    }
+}
+
+Student *read_from_file(FILE *fp)
+{
+    Student *new_head;
+    Student *temp_node;
+    new_head = (Student*)malloc(Stu_Size);
+    init_head(new_head);
+    char p[255];
+    while (!feof(fp))
+    {
+        temp_node = (Student*)malloc(Stu_Size);
+        fscanf(fp,"Number:%d; Name:%[^;]; every course:%[^;];total score: %d; average score: %lf;\n",\
+            &(temp_node->number),temp_node->name,p,&(temp_node->total_score),&(temp_node->average_score));
+        //puts(p);
+        parse_score(temp_node->score, p);
+        insert_node(new_head, new_head->next, temp_node);
+    }
+    //puts(p);
+    return new_head;
+}
+
+void parse_score(int *score, char* p)
+{
+    course_total = sscanf(p," %d %d %d %d %d %d ",\
+        &score[0],&score[1],&score[2],&score[3],&score[4],&score[5]);
+    //printf("$%d$", course_total);
 }

@@ -10,3 +10,5 @@ learn
 *.exe
 .vscode
 *.zip
+test.c
+*.txt
