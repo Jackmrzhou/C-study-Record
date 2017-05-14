@@ -493,6 +493,7 @@ void write_into_file(FILE *fp, Student *head)
         fprintf(fp,";total score: %d; average score: %.1lf;",p->total_score, p->average_score);
         fprintf(fp,"\n");
         p = p->next;
+        fflush(fp);
     }
 }
 
