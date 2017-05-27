@@ -25,6 +25,9 @@ inline void tail_insert(struct list_head *tail, struct list_head * new);
 inline void list_insert(struct list_head *pre,struct list_head *nex, struct list_head *new);
 inline void node_delete(struct list_head *pre, struct list_head *nex);
 inline int is_list_empty(const struct list_head * head);
+inline void pop_head(struct list_head *head);
+inline void pop_tail(struct list_head *head);
+void pop_certain_node(struct list_head *head, int i);
 void merge_list(struct list_head *head_1, struct list_head * head_2);
 int get_list_lenth(const struct list_head *head);
 struct node* get_item(const struct list_head *head,int item_type,int count);
@@ -34,25 +37,31 @@ int main()
 	printf("%lu\n",sizeof(void *));
 	printf("%lu\n",sizeof(struct node));
 	printf("%lu\n",sizeof(struct list_head));*/
-	struct test_node test_node_1;
-	struct an_test_node test_node_2,test_node_3;
-	test_node_1.test_int = 10;
-	test_node_1.test_array[0]=1;
-	test_node_1.test_array[1]=2;
-	test_node_2.test_ch = 'a';
-	test_node_3.test_ch = 'b';
-	struct node my_node_1,my_node_2,my_node_3;
-	my_node_1.data = &test_node_1;
-	my_node_1.type = struct_test_node;
-	my_node_2.data = &test_node_2;
-	my_node_2.type = struct_an_test_node;
-	my_node_3.data = &test_node_3;
-	my_node_3.type = struct_an_test_node;
+	struct test_node *test_node_1;
+	struct an_test_node *test_node_2,*test_node_3;
+	test_node_1 = (struct test_node *)malloc(sizeof(struct test_node));
+	test_node_2 = (struct an_test_node*)malloc(sizeof(struct an_test_node));
+	test_node_3 = (struct an_test_node*)malloc(sizeof(struct an_test_node));
+	(*test_node_1).test_int = 10;
+	(*test_node_1).test_array[0]=1;
+	(*test_node_1).test_array[1]=2;
+	(*test_node_2).test_ch = 'a';
+	(*test_node_3).test_ch = 'b';
+	struct node *my_node_1,*my_node_2,*my_node_3;
+	my_node_1 = (struct node*)malloc(sizeof(struct node));
+	my_node_2 = (struct node*)malloc(sizeof(struct node));
+	my_node_3 = (struct node*)malloc(sizeof(struct node));
+	(*my_node_1).data = test_node_1;
+	(*my_node_1).type = struct_test_node;
+	(*my_node_2).data = test_node_2;
+	(*my_node_2).type = struct_an_test_node;
+	(*my_node_3).data = test_node_3;
+	(*my_node_3).type = struct_an_test_node;
 	struct list_head *head;
 	head = (struct list_head*)malloc(sizeof(struct list_head));
 	init_head(head);
-	head_insert(head, &(my_node_1.list_node));
-	head_insert(head, &(my_node_2.list_node));
+	head_insert(head, &(my_node_1->list_node));
+	head_insert(head, &(my_node_2->list_node));
 	//test insert
 	struct node *temp_node;
 	temp_node = container_of(head->next, struct node, list_node);
@@ -71,7 +80,7 @@ int main()
 	struct list_head * head_2;
 	head_2 = (struct list_head *)malloc(sizeof(struct list_head));
 	init_head(head_2);
-	head_insert(head_2, &(my_node_3.list_node));
+	head_insert(head_2, &(my_node_3->list_node));
 	merge_list(head, head_2);
 	//test merge_list
 	int i;
@@ -103,6 +112,7 @@ inline void list_insert(struct list_head *pre,struct list_head *nex, struct list
 inline void node_delete(struct list_head * pre,struct list_head *nex)
 {
 	pre->next = nex;
+	free(container_of(nex->before,struct node, list_node)->data);
 	free(container_of(nex->before,struct node, list_node));
 	nex->before = pre;
 }
@@ -142,4 +152,19 @@ void merge_list(struct list_head *head_1, struct list_head * head_2)
 	head_2->next->before = tail_1;
 	tail_2->next = head_1;
 	head_1->before = tail_2;
+}
+inline void pop_head(struct list_head *head)
+{
+	node_delete(head, head->next->next);
+}
+inline void pop_tail(struct list_head *head)
+{
+	node_delete(head->before->before, head);
+}
+void pop_certain_node(struct list_head *head, int i)
+{
+	struct list_head *p =head->next;
+	while(--i > 0)
+		p = p->next;
+	node_delete(p->before, p->next);
 }
