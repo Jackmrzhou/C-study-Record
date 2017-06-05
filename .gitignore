@@ -10,5 +10,7 @@ learn
 *.exe
 .vscode
 *.zip
-test.c
 *.txt
+test
+test.*
+*.docx
