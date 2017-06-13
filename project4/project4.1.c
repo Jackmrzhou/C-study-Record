@@ -12,12 +12,13 @@ int main()
 	FILE *fpr, *fpw;
 	fpr = fopen("read.txt", "r");
 	int i = 0;
-	while (fscanf_s(fpr, "%d", &a[i++]) != EOF);
-		i--;
+	while (fscanf(fpr, "%d ", &a[i++]) != EOF);
+	i--;
 	qsort(a, 0, i-1);
 	fpw = fopen("write.txt", "w");
-	for (int j = 0; j < i; j++)
-		fprintf(fpw, "%d\t", a[j]);
+	int j;
+	for (j = 0; j < i; j++)
+		fprintf(fpw, "%d ", a[j]);
 	return 0;
 }
 void qsort(int a[], int head, int tail){
